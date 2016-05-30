@@ -32,7 +32,7 @@ class MDProductsDisqus extends Module
     {
         $this->name = 'mdproductsdisqus';
         $this->tab = 'administration';
-        $this->version = '1.0.0';
+        $this->version = '1.0.1';
         $this->author = 'Michael Dekker';
         $this->need_instance = 0;
 
@@ -66,6 +66,8 @@ class MDProductsDisqus extends Module
      */
     public function uninstall()
     {
+        Configuration::deleteByName(self::DISQUS_USERNAME);
+
         return parent::uninstall();
     }
 

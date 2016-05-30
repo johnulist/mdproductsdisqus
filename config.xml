@@ -2,7 +2,7 @@
 <module>
 	<name>mdproductsdisqus</name>
 	<displayName><![CDATA[Disqus on product page]]></displayName>
-	<version><![CDATA[1.0.0]]></version>
+	<version><![CDATA[1.0.1]]></version>
 	<description><![CDATA[Add Disqus comments to your product pages]]></description>
 	<author><![CDATA[Michael Dekker]]></author>
 	<tab><![CDATA[administration]]></tab>
