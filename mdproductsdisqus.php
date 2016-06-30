@@ -32,7 +32,7 @@ class MDProductsDisqus extends Module
     {
         $this->name = 'mdproductsdisqus';
         $this->tab = 'administration';
-        $this->version = '1.0.1';
+        $this->version = '1.1.0';
         $this->author = 'Michael Dekker';
         $this->need_instance = 0;
 
@@ -55,8 +55,18 @@ class MDProductsDisqus extends Module
      */
     public function install()
     {
-        return parent::install() &&
+        if (!parent::install()) {
+            return false;
+        }
+
+        if (version_compare(_PS_VERSION_, '1.6.0.0', '>=')) {
             $this->registerHook('displayFooterProduct');
+        } else {
+            $this->registerHook('displayProductTab');
+            $this->registerHook('displayProductTabContent');
+        }
+
+        return true;
     }
 
     /**
@@ -67,6 +77,10 @@ class MDProductsDisqus extends Module
     public function uninstall()
     {
         Configuration::deleteByName(self::DISQUS_USERNAME);
+
+        $this->unregisterHook('displayFooterProduct');
+        $this->unregisterHook('displayProductTab');
+        $this->unregisterHook('displayProductTabContent');
 
         return parent::uninstall();
     }
@@ -121,12 +135,12 @@ class MDProductsDisqus extends Module
                         'name' => self::DISQUS_USERNAME,
                         'value' => Configuration::get(self::DISQUS_USERNAME),
                         'validation' => 'isString',
-                        'cast' => 'strval'
+                        'cast' => 'strval',
                     ),
                 ),
                 'submit' => array(
                     'title' => $this->l('Save'),
-                    'class' => 'button'
+                    'class' => 'button',
                 ),
             ),
         );
@@ -138,7 +152,9 @@ class MDProductsDisqus extends Module
     protected function postProcess()
     {
         $output = '';
-        $output .= $this->postProcessGeneralOptions();
+        if (Tools::isSubmit('submitOptionsconfiguration') || Tools::isSubmit('submitOptions')) {
+            $output .= $this->postProcessGeneralOptions();
+        }
 
         return $output;
     }
@@ -154,18 +170,18 @@ class MDProductsDisqus extends Module
             if (Shop::getContext() == Shop::CONTEXT_ALL) {
                 $this->updateAllValue(self::DISQUS_USERNAME, $username);
             } elseif (is_array(Tools::getValue('multishopOverrideOption'))) {
-                $id_shop_group = (int)Shop::getGroupFromShop($this->getShopId(), true);
-                $multishop_override = Tools::getValue('multishopOverrideOption');
+                $idShopGroup = (int) Shop::getGroupFromShop($this->getShopId(), true);
+                $multishopOverride = Tools::getValue('multishopOverrideOption');
                 if (Shop::getContext() == Shop::CONTEXT_GROUP) {
-                    foreach (Shop::getShops(false, $this->getShopId()) as $id_shop) {
-                        if ($multishop_override[self::DISQUS_USERNAME]) {
-                            Configuration::updateValue(self::DISQUS_USERNAME, $username, false, $id_shop_group, $id_shop);
+                    foreach (Shop::getShops(false, $this->getShopId()) as $idShop) {
+                        if ($multishopOverride[self::DISQUS_USERNAME]) {
+                            Configuration::updateValue(self::DISQUS_USERNAME, $username, false, $idShopGroup, $idShop);
                         }
                     }
                 } else {
-                    $id_shop = (int)$this->getShopId();
-                    if ($multishop_override[self::DISQUS_USERNAME]) {
-                        Configuration::updateValue(self::DISQUS_USERNAME, $username, false, $id_shop_group, $id_shop);
+                    $idShop = (int) $this->getShopId();
+                    if ($multishopOverride[self::DISQUS_USERNAME]) {
+                        Configuration::updateValue(self::DISQUS_USERNAME, $username, false, $idShopGroup, $idShop);
                     }
                 }
             }
@@ -184,19 +200,55 @@ class MDProductsDisqus extends Module
     public function hookDisplayFooterProduct()
     {
         $this->context->smarty->assign(array(
-            'id_product' => (int)Tools::getValue('id_product'),
+            'id_product' => (int) Tools::getValue('id_product'),
             'disqus_username' => Configuration::get(self::DISQUS_USERNAME),
         ));
 
-        return $this->context->smarty->fetch($this->local_path.'views/templates/hook/disqusfooter.tpl');
+        return $this->display(__FILE__, 'disqusfooter.tpl');
+    }
+
+    /**
+     * Hook to product tab
+     *
+     * @return string Hook HTML
+     * @throws Exception
+     * @throws SmartyException
+     */
+    public function hookDisplayProductTab()
+    {
+        $this->context->smarty->assign(array(
+            'disqus_username' => Configuration::get(self::DISQUS_USERNAME),
+        ));
+
+        return $this->display(__FILE__, 'tab.tpl');
+    }
+
+    /**
+     * Hook to product tab content
+     *
+     * @param array $params Hook parameters
+     * @return string Hook HTML
+     * @throws Exception
+     * @throws SmartyException
+     */
+    public function hookDisplayProductTabContent($params)
+    {
+        /** @var Product $product */
+        $product = $params['product'];
+        $this->context->smarty->assign(array(
+            'id_product' => $product->id,
+            'disqus_username' => Configuration::get(self::DISQUS_USERNAME),
+        ));
+
+        return $this->display(__FILE__, 'tabcontent.tpl');
     }
 
     /**
      * Update configuration value in ALL contexts
      *
-     * @param string $key Configuration key
-     * @param mixed $values Configuration values, can be string or array with id_lang as key
-     * @param bool $html Contains HTML
+     * @param string $key    Configuration key
+     * @param mixed  $values Configuration values, can be string or array with id_lang as key
+     * @param bool   $html   Contains HTML
      */
     public function updateAllValue($key, $values, $html = false)
     {
@@ -216,6 +268,6 @@ class MDProductsDisqus extends Module
     {
         $cookie = Context::getContext()->cookie->getFamily('shopContext');
 
-        return (int)Tools::substr($cookie['shopContext'], 2, count($cookie['shopContext']));
+        return (int) Tools::substr($cookie['shopContext'], 2, count($cookie['shopContext']));
     }
 }
