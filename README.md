@@ -22,14 +22,15 @@ https://github.com/firstred/mdproductsdisqus/issues
 - Check if there are any errors and correct them if necessary
 - Profit!
 
-## Documentation
-The wiki is coming soon
-
 ## Compatibility
 This module has been tested with these versions:  
 - `1.6.1.5`
 
 It is expected that the module will work on older versions (all the way to `1.5.0.17`). If not, please create a new ticket in the issue tracker.
+
+## Minimum requirements
+- PHP `5.4`
+- PrestaShop `1.5.0.17`
 
 ## License
 Academic Free License 3.0
